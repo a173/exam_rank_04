@@ -30,7 +30,7 @@ char *ft_strdup(char *str)
     return (newstr);
 }
 
-int not_cd(t_cmd **com)
+int not_cd(t_cmd **com, int pip)
 {
     int i;
     pid_t pid;
@@ -49,8 +49,13 @@ int not_cd(t_cmd **com)
                     return (0);
             }
             else
+            {
+                if (i < pip - 1)
+                    if (dup2(com[i]->pipe[1], 1) < 0)
+                        return (0);
                 if (dup2(com[i - 1]->pipe[0], 0) < 0)
                     return (0);
+            }
             if ((ret = execve(com[i]->line[0], com[i]->line, envp)) < 0)
                 write(2, "error: cannot execute ", 22) &&
                     write(2, com[i]->line[0], ft_strlen(com[i]->line[0])) &&
@@ -98,7 +103,7 @@ int to_exec(t_cmd **com, int pip)
         waitpid(pid, 0, 0);
     }
     else
-        if (!not_cd(com))
+        if (!not_cd(com, pip))
             return (0);
     return (1);
 }
@@ -146,6 +151,8 @@ int newlst(char **cmd, int count, int n, int pip)
     i = -1;
     j = -1;
     start = 0;
+    if (!strcmp(cmd[0], ";") || !strcmp(cmd[0], "|"))
+        return (1);
     if (!(com = malloc(sizeof(t_cmd*) * (pip + 1))))
         return (0);
     while (n-- > 0)
